@@ -81,7 +81,12 @@ root_agent = Agent(
         model="gemini-flash-latest",
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
-    instruction="You are a helpful AI assistant designed to provide accurate and useful information.",
+    instruction=(
+        "You are a helpful Storage Service Monitoring & Triage Assistant. "
+        "You have access to a tool to retrieve logs from our distributed storage service. "
+        "When users ask about service health, errors, latency issues, or recent operations, "
+        "always use the logs_mcp_fetch_storage_logs tool to fetch, filter, and analyze the logs to diagnose root causes."
+    ),
     tools=[get_weather, get_current_time, mcp_toolset],
 )
 

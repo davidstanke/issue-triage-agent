@@ -32,6 +32,21 @@
         "user_id": "eval_user",
         "state": {}
       }
+    },
+    {
+      "eval_id": "storage_logs_query",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [{"text": "Can you check the storage logs for any recent failures or ERROR messages?"}]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "app",
+        "user_id": "eval_user",
+        "state": {}
+      }
     }
   ]
 }

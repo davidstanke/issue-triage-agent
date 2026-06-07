@@ -24,13 +24,9 @@ async def test_server():
         tools = await client.list_tools()
         for tool in tools:
             print(f">>> 🛠️  Tool found: {tool.name}")
-        # Call add tool
-        print(">>> 🪛  Calling add tool for 1 + 2")
-        result = await client.call_tool("add", {"a": 1, "b": 2})
-        print(f"<<< ✅ Result: {result.content[0].text}")
-        # Call subtract tool
-        print(">>> 🪛  Calling subtract tool for 10 - 3")
-        result = await client.call_tool("subtract", {"a": 10, "b": 3})
+        # Call fetch_storage_logs tool
+        print(">>> 🪛  Calling fetch_storage_logs tool with limit=5, min_severity=WARNING")
+        result = await client.call_tool("fetch_storage_logs", {"limit": 5, "min_severity": "WARNING"})
         print(f"<<< ✅ Result: {result.content[0].text}")
 
 if __name__ == "__main__":
