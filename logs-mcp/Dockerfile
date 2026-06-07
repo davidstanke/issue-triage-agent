@@ -1,24 +1,20 @@
-# Use official lightweight Python image
-FROM python:3.11-slim
+# Use the official Python image
+FROM python:3.13-slim
 
-# Install uv package manager
+# Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Set working directory
+# Install the project into /app
+COPY . /app
 WORKDIR /app
 
-# Copy dependency files first
-COPY pyproject.toml ./
+# Allow statements and log messages to immediately appear in the logs
+ENV PYTHONUNBUFFERED=1
 
-# Install project dependencies using uv (no lock file initially needed, uv resolves on the fly)
-RUN uv pip install --system --upgrade -r pyproject.toml
+# Install dependencies
+RUN uv sync --locked
 
-# Copy server code
-COPY main.py ./
+EXPOSE $PORT
 
-# Cloud Run injects the $PORT environment variable, default to 8080 if not set
-ENV PORT=8080
-EXPOSE 8080
-
-# Run in SSE/FastAPI mode using the system python with uvicorn
-CMD ["python", "main.py", "--transport", "sse", "--port", "8080"]
+# Run the FastMCP server
+CMD ["uv", "run", "server.py"]
