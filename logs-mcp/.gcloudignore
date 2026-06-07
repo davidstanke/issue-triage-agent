@@ -1,0 +1,22 @@
+# Ignore git directory
+.git/
+
+# Ignore Python virtual environment
+.venv/
+venv/
+env/
+
+# Ignore Python cache directories and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore IDE settings
+.idea/
+.vscode/
+
+# Ignore local files
+.DS_Store
+deploy.sh
+README.md
