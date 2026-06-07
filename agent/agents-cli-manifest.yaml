@@ -1,0 +1,12 @@
+name: issue-triage-agent
+description: Simple ReAct agent
+base_template: adk
+agent_directory: app
+generated_at: '2026-06-03T15:45:52.653086+00:00'
+acli_version: 0.3.0
+create_params:
+  deployment_target: agent_runtime
+  session_type: none
+  cicd_runner: github_actions
+  include_data_ingestion: false
+  datastore: none

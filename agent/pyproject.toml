@@ -91,24 +91,3 @@ asyncio_default_fixture_loop_scope = "function"
 [tool.hatch.build.targets.wheel]
 packages = ["app","frontend"]
 
-[tool.agents-cli]
-# Generation metadata - enables CLI commands to understand project context
-# These fields allow any generated project to work as a remote template
-name = "issue-triage-agent"
-description = "Simple ReAct agent"
-base_template = "adk"
-agent_directory = "app"
-
-# Generation context
-generated_at = "2026-06-03T15:45:52.653086+00:00"
-acli_version = "0.1.2"
-
-[tool.agents-cli.create_params]
-# Parameters used during project creation
-deployment_target = "agent_runtime"
-session_type = "none"
-cicd_runner = "github_actions"
-include_data_ingestion = false
-
-datastore = "none"
-
