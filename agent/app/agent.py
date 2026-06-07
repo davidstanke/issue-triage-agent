@@ -30,6 +30,10 @@ os.environ["GOOGLE_CLOUD_LOCATION"] = "global"
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
 
+from google.adk.tools.mcp_tool import McpToolset
+from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
+
+
 def get_weather(query: str) -> str:
     """Simulates a web search. Use it get information on weather.
 
@@ -63,6 +67,14 @@ def get_current_time(query: str) -> str:
     return f"The current time for query {query} is {now.strftime('%Y-%m-%d %H:%M:%S %Z%z')}"
 
 
+mcp_url = os.environ.get(
+    "LOGS_MCP_URL", "https://logs-mcp-620915686749.us-central1.run.app/mcp/"
+)
+mcp_toolset = McpToolset(
+    connection_params=StreamableHTTPConnectionParams(url=mcp_url),
+    tool_name_prefix="logs_mcp_",
+)
+
 root_agent = Agent(
     name="root_agent",
     model=Gemini(
@@ -70,10 +82,11 @@ root_agent = Agent(
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
     instruction="You are a helpful AI assistant designed to provide accurate and useful information.",
-    tools=[get_weather, get_current_time],
+    tools=[get_weather, get_current_time, mcp_toolset],
 )
 
 app = App(
     root_agent=root_agent,
     name="app",
 )
+
