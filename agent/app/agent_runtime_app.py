@@ -250,7 +250,10 @@ class AgentEngineApp(AdkApp):
 
         try:
             parsed = json.loads(cleaned)
-            if "assigned_engineer" in parsed and "explanation" in parsed:
+            if isinstance(parsed, dict) and "assigned_engineer" in parsed:
+                explanation = parsed.get("explanation")
+                if not explanation or not isinstance(explanation, str) or not explanation.strip():
+                    parsed["explanation"] = "(unspecified)"
                 return json.dumps(parsed)
         except Exception:
             pass
@@ -262,9 +265,13 @@ class AgentEngineApp(AdkApp):
                 assigned_engineer = email
                 break
 
+        explanation = raw_response.strip() if raw_response else ""
+        if not explanation:
+            explanation = "(unspecified)"
+
         return json.dumps({
             "assigned_engineer": assigned_engineer,
-            "explanation": raw_response
+            "explanation": explanation
         })
 
     def register_operations(self) -> dict[str, list[str]]:
