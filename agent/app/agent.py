@@ -28,32 +28,24 @@ os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
 # Hardcoded list of 15 engineers
 ENGINEERS = [
-    "alex.rivera@davidstanke.altostrat.com",
-    "beatrice.vance@davidstanke.altostrat.com",
-    "charlie.wu@davidstanke.altostrat.com",
-    "daniela.silva@davidstanke.altostrat.com",
-    "elias.kline@davidstanke.altostrat.com",
-    "fiona.gallagher@davidstanke.altostrat.com",
-    "george.patel@davidstanke.altostrat.com",
+    "alexrivera-davidstanke",
+    "beatricevance-davidstanke",
+    "charliewu-davidstanke",
+    "danielasilva-davidstanke",
+    "eliaskline-davidstanke",
+    "fionagallagher-davidstanke",
+    "georgepatel-davidstanke",
 ]
 
 # Standard initial expertise profiles
 INITIAL_ENGINEER_PROFILES = {
-    "alex.rivera@davidstanke.altostrat.com": "Frontend, React, HTML, CSS, layouts, UI designs, responsiveness",
-    "beatrice.vance@davidstanke.altostrat.com": "Backend APIs, FastAPI, Flask, REST endpoints, HTTP requests, web frameworks",
-    "charlie.wu@davidstanke.altostrat.com": "Databases, SQL, PostgreSQL, database migrations, schema design, query optimization, indexing",
-    "daniela.silva@davidstanke.altostrat.com": "Cloud Infrastructure, DevOps, Terraform, Docker, Kubernetes, GCP, deployment pipelines",
-    "elias.kline@davidstanke.altostrat.com": "Security, Authentication, OAuth, IAM, JWT, encryption, SSL/TLS, vulnerabilities",
-    "fiona.gallagher@davidstanke.altostrat.com": "Testing, Pytest, unit tests, integration tests, mock objects, test coverage, CI workflows",
-    "george.patel@davidstanke.altostrat.com": "Performance, Latency, caching, Redis, profiling, performance tuning, optimization",
-    "harriet.tubman@davidstanke.altostrat.com": "Logging, Observability, OpenTelemetry, Cloud Logging, Cloud Monitoring, tracing, metrics",
-    "ian.mckellen@davidstanke.altostrat.com": "Data pipelines, BigQuery, data ingestion, processing, ETL, pandas, analytics",
-    "julia.child@davidstanke.altostrat.com": "Documentation, Developer Relations, READMEs, API documentation, tutorials, markdown, SDKs",
-    "karl.marx@davidstanke.altostrat.com": "Package management, dependencies, uv, pip, pyproject.toml, lockfiles, virtual environments",
-    "leonardo.davinci@davidstanke.altostrat.com": "Machine Learning, AI, Gemini APIs, model tuning, prompt engineering, vertexai",
-    "marie.curie@davidstanke.altostrat.com": "Science, Mathematics, heavy algorithms, calculations, matrix math, scientific computing",
-    "nikola.tesla@davidstanke.altostrat.com": "Core runtime, event loops, asyncio, asynchronous tasks, threading, concurrency",
-    "oscar.wilde@davidstanke.altostrat.com": "Error handling, user notifications, alerts, SMTP, messaging, alert channels, error messages"
+    "alexrivera-davidstanke": "Frontend, React, HTML, CSS, layouts, UI designs, responsiveness",
+    "beatricevance-davidstanke": "Backend APIs, FastAPI, Flask, REST endpoints, HTTP requests, web frameworks",
+    "charliewu-davidstanke": "Databases, SQL, PostgreSQL, database migrations, schema design, query optimization, indexing",
+    "danielasilva-davidstanke": "Cloud Infrastructure, DevOps, Terraform, Docker, Kubernetes, GCP, deployment pipelines",
+    "eliaskline-davidstanke": "Security, Authentication, OAuth, IAM, JWT, encryption, SSL/TLS, vulnerabilities",
+    "fionagallagher-davidstanke": "Testing, Pytest, unit tests, integration tests, mock objects, test coverage, CI workflows",
+    "georgepatel-davidstanke": "Performance, Latency, caching, Redis, profiling, performance tuning, optimization",
 }
 
 
