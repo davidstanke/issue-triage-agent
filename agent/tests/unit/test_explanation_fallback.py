@@ -58,7 +58,7 @@ def test_query_explanation_present_and_valid(mock_agent_app):
     mock_event = {"id": "1", "content": {"parts": [{"text": raw_response}]}}
     
     with patch.object(mock_agent_app, "stream_query", return_value=[mock_event]), \
-         patch("app.agent_runtime_app.Event.model_validate", return_value=MockEvent(raw_response)):
+         patch("google.adk.events.event.Event.model_validate", return_value=MockEvent(raw_response)):
         res = mock_agent_app.query("Some migration issue")
         parsed = json.loads(res)
         assert parsed["assigned_engineer"] == "charlie.wu@davidstanke.altostrat.com"
@@ -72,7 +72,7 @@ def test_query_explanation_missing_but_engineer_present(mock_agent_app):
     mock_event = {"id": "1", "content": {"parts": [{"text": raw_response}]}}
     
     with patch.object(mock_agent_app, "stream_query", return_value=[mock_event]), \
-         patch("app.agent_runtime_app.Event.model_validate", return_value=MockEvent(raw_response)):
+         patch("google.adk.events.event.Event.model_validate", return_value=MockEvent(raw_response)):
         res = mock_agent_app.query("Some migration issue")
         parsed = json.loads(res)
         assert parsed["assigned_engineer"] == "charlie.wu@davidstanke.altostrat.com"
@@ -86,7 +86,7 @@ def test_query_explanation_empty_string(mock_agent_app):
     mock_event = {"id": "1", "content": {"parts": [{"text": raw_response}]}}
     
     with patch.object(mock_agent_app, "stream_query", return_value=[mock_event]), \
-         patch("app.agent_runtime_app.Event.model_validate", return_value=MockEvent(raw_response)):
+         patch("google.adk.events.event.Event.model_validate", return_value=MockEvent(raw_response)):
         res = mock_agent_app.query("Some migration issue")
         parsed = json.loads(res)
         assert parsed["assigned_engineer"] == "charlie.wu@davidstanke.altostrat.com"
@@ -100,7 +100,7 @@ def test_query_invalid_json_fallback_with_text(mock_agent_app):
     mock_event = {"id": "1", "content": {"parts": [{"text": raw_response}]}}
     
     with patch.object(mock_agent_app, "stream_query", return_value=[mock_event]), \
-         patch("app.agent_runtime_app.Event.model_validate", return_value=MockEvent(raw_response)):
+         patch("google.adk.events.event.Event.model_validate", return_value=MockEvent(raw_response)):
         res = mock_agent_app.query("Some migration issue")
         parsed = json.loads(res)
         assert parsed["assigned_engineer"] == "charlie.wu@davidstanke.altostrat.com"
@@ -114,7 +114,7 @@ def test_query_invalid_json_fallback_empty_response(mock_agent_app):
     mock_event = {"id": "1", "content": {"parts": [{"text": raw_response}]}}
     
     with patch.object(mock_agent_app, "stream_query", return_value=[mock_event]), \
-         patch("app.agent_runtime_app.Event.model_validate", return_value=MockEvent(raw_response)):
+         patch("google.adk.events.event.Event.model_validate", return_value=MockEvent(raw_response)):
         res = mock_agent_app.query("Some migration issue")
         parsed = json.loads(res)
         # Should default to the first engineer (alex.rivera@davidstanke.altostrat.com)
