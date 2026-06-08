@@ -13,67 +13,100 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
-from zoneinfo import ZoneInfo
-
+import os
+import google.auth
 from google.adk.agents import Agent
+from google.adk import Context
 from google.adk.apps import App
 from google.adk.models import Gemini
 from google.genai import types
-
-import os
-import google.auth
 
 _, project_id = google.auth.default()
 os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 os.environ["GOOGLE_CLOUD_LOCATION"] = "global"
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
+# Hardcoded list of 15 engineers
+ENGINEERS = [
+    "alex.rivera@davidstanke.altostrat.com",
+    "beatrice.vance@davidstanke.altostrat.com",
+    "charlie.wu@davidstanke.altostrat.com",
+    "daniela.silva@davidstanke.altostrat.com",
+    "elias.kline@davidstanke.altostrat.com",
+    "fiona.gallagher@davidstanke.altostrat.com",
+    "george.patel@davidstanke.altostrat.com",
+]
 
-from google.adk.tools.mcp_tool import McpToolset
-from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
+# Standard initial expertise profiles
+INITIAL_ENGINEER_PROFILES = {
+    "alex.rivera@davidstanke.altostrat.com": "Frontend, React, HTML, CSS, layouts, UI designs, responsiveness",
+    "beatrice.vance@davidstanke.altostrat.com": "Backend APIs, FastAPI, Flask, REST endpoints, HTTP requests, web frameworks",
+    "charlie.wu@davidstanke.altostrat.com": "Databases, SQL, PostgreSQL, database migrations, schema design, query optimization, indexing",
+    "daniela.silva@davidstanke.altostrat.com": "Cloud Infrastructure, DevOps, Terraform, Docker, Kubernetes, GCP, deployment pipelines",
+    "elias.kline@davidstanke.altostrat.com": "Security, Authentication, OAuth, IAM, JWT, encryption, SSL/TLS, vulnerabilities",
+    "fiona.gallagher@davidstanke.altostrat.com": "Testing, Pytest, unit tests, integration tests, mock objects, test coverage, CI workflows",
+    "george.patel@davidstanke.altostrat.com": "Performance, Latency, caching, Redis, profiling, performance tuning, optimization",
+    "harriet.tubman@davidstanke.altostrat.com": "Logging, Observability, OpenTelemetry, Cloud Logging, Cloud Monitoring, tracing, metrics",
+    "ian.mckellen@davidstanke.altostrat.com": "Data pipelines, BigQuery, data ingestion, processing, ETL, pandas, analytics",
+    "julia.child@davidstanke.altostrat.com": "Documentation, Developer Relations, READMEs, API documentation, tutorials, markdown, SDKs",
+    "karl.marx@davidstanke.altostrat.com": "Package management, dependencies, uv, pip, pyproject.toml, lockfiles, virtual environments",
+    "leonardo.davinci@davidstanke.altostrat.com": "Machine Learning, AI, Gemini APIs, model tuning, prompt engineering, vertexai",
+    "marie.curie@davidstanke.altostrat.com": "Science, Mathematics, heavy algorithms, calculations, matrix math, scientific computing",
+    "nikola.tesla@davidstanke.altostrat.com": "Core runtime, event loops, asyncio, asynchronous tasks, threading, concurrency",
+    "oscar.wilde@davidstanke.altostrat.com": "Error handling, user notifications, alerts, SMTP, messaging, alert channels, error messages"
+}
 
 
-def get_weather(query: str) -> str:
-    """Simulates a web search. Use it get information on weather.
+async def search_past_issue_assignments(query: str, ctx: Context) -> str:
+    """Searches the agent's memory bank for past issue assignments and engineer feedback.
 
     Args:
-        query: A string containing the location to get weather information for.
+        query: The search query (e.g. topic, issue text, keywords).
+        ctx: Context automatically injected by ADK.
 
     Returns:
-        A string with the simulated weather information for the queried location.
+        A list of matching memories formatted as a string.
     """
-    if "sf" in query.lower() or "san francisco" in query.lower():
-        return "It's 60 degrees and foggy."
-    return "It's 90 degrees and sunny."
+    try:
+        # Lazily seed memories if empty on first search to cover all environments/runners
+        results = await ctx.search_memory("*")
+        if not results or not results.memories:
+            from google.adk.memory.memory_entry import MemoryEntry
+            from google.genai import types
 
+            initial_memories = [
+                MemoryEntry(content=types.Content(parts=[types.Part(text=f"Engineer {email} is an expert in: {expertise}")]))
+                for email, expertise in INITIAL_ENGINEER_PROFILES.items()
+            ]
+            try:
+                await ctx.add_memory(memories=initial_memories)
+            except (NotImplementedError, ValueError):
+                from google.adk.events.event import Event
+                events = [
+                    Event(
+                        id=f"seed-{i}",
+                        author="github-issue-agent",
+                        content=m.content,
+                    )
+                    for i, m in enumerate(initial_memories)
+                ]
+                await ctx.add_events_to_memory(events=events)
 
-def get_current_time(query: str) -> str:
-    """Simulates getting the current time for a city.
+            results = await ctx.search_memory(query)
+        else:
+            results = await ctx.search_memory(query)
 
-    Args:
-        city: The name of the city to get the current time for.
+        if not results or not results.memories:
+            return "No past memories or feedback found for this query."
+        
+        formatted = []
+        for m in results.memories:
+            text = "".join(part.text for part in m.content.parts if part.text)
+            formatted.append(f"- {text}")
+        return "\n".join(formatted)
+    except Exception as e:
+        return f"Error searching past assignments: {str(e)}"
 
-    Returns:
-        A string with the current time information.
-    """
-    if "sf" in query.lower() or "san francisco" in query.lower():
-        tz_identifier = "America/Los_Angeles"
-    else:
-        return f"Sorry, I don't have timezone information for query: {query}."
-
-    tz = ZoneInfo(tz_identifier)
-    now = datetime.datetime.now(tz)
-    return f"The current time for query {query} is {now.strftime('%Y-%m-%d %H:%M:%S %Z%z')}"
-
-
-mcp_url = os.environ.get(
-    "LOGS_MCP_URL", "https://logs-mcp-620915686749.us-central1.run.app/mcp/"
-)
-mcp_toolset = McpToolset(
-    connection_params=StreamableHTTPConnectionParams(url=mcp_url),
-    tool_name_prefix="logs_mcp_",
-)
 
 root_agent = Agent(
     name="root_agent",
@@ -82,16 +115,22 @@ root_agent = Agent(
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
     instruction=(
-        "You are a helpful Storage Service Monitoring & Triage Assistant. "
-        "You have access to a tool to retrieve logs from our distributed storage service. "
-        "When users ask about service health, errors, latency issues, or recent operations, "
-        "always use the logs_mcp_fetch_storage_logs tool to fetch, filter, and analyze the logs to diagnose root causes."
+        "You are the GitHub Issue Triage & Assignment Assistant. "
+        "Your task is to assign an incoming GitHub issue to the most suitable engineer from the list of 15 available engineers:\n"
+        f"{', '.join(ENGINEERS)}\n\n"
+        "To make the best decision:\n"
+        "1. Always start by using the search_past_issue_assignments tool to search for past assignments, successes, failures, and expertise profiles related to the current issue topic.\n"
+        "2. Match the issue's requirements against the retrieved memories and the known profiles of the 15 engineers.\n"
+        "3. You MUST return a JSON object in this strict format, and nothing else:\n"
+        "{\n"
+        '  "assigned_engineer": "<email_id_of_chosen_engineer>",\n'
+        '  "explanation": "<detailed_explanation_of_why_this_engineer_was_selected_based_on_retrieved_memories_and_expertise>"\n'
+        "}\n"
     ),
-    tools=[get_weather, get_current_time, mcp_toolset],
+    tools=[search_past_issue_assignments],
 )
 
 app = App(
     root_agent=root_agent,
     name="app",
 )
-

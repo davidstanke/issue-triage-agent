@@ -1,0 +1,66 @@
+name: Vertex AI Issue Agent
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  query-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Prepare Payload and Query Vertex AI
+        id: query
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          # Combine title and body safely
+          QUERY=$(printf "%s\n\n%s" "$ISSUE_TITLE" "$ISSUE_BODY")
+          
+          # Use jq to construct a safe JSON payload
+          jq -n --arg query "$QUERY" '{input: {query: $query}}' > payload.json
+          
+          # Get access token locally using gcloud (no extra IAM permissions needed)
+          ACCESS_TOKEN=$(gcloud auth print-access-token)
+
+          # Query the Vertex AI Reasoning Engine endpoint
+          HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d @payload.json \
+            "https://us-east1-aiplatform.googleapis.com/v1/projects/620915686749/locations/us-east1/reasoningEngines/5714117949086760960:query")
+          
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "API request failed with status $HTTP_STATUS"
+            cat response.json
+            exit 1
+          fi
+          
+          # Extract the agent's response
+          COMMENT_BODY=$(jq -r '.output' response.json)
+          if [ "$COMMENT_BODY" = "null" ] || [ -z "$COMMENT_BODY" ]; then
+            echo "Failed to extract output. Response was:"
+            cat response.json
+            exit 1
+          fi
+          
+          # Save comment body to a file to preserve formatting and prevent shell limits
+          echo "$COMMENT_BODY" > comment.txt
+
+      - name: Comment on Issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "${{ github.event.issue.html_url }}" --body-file comment.txt

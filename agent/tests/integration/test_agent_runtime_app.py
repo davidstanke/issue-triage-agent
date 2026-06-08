@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
-
 import pytest
 from google.adk.events.event import Event
-
 from app.agent_runtime_app import AgentEngineApp
 
 
@@ -38,14 +37,12 @@ async def test_agent_stream_query(agent_app: AgentEngineApp) -> None:
     Integration test for the agent stream query functionality.
     Tests that the agent returns valid streaming responses.
     """
-    # Create message and events for the async_stream_query
-    message = "Hi!"
+    message = "Need to construct dynamic UI and responsive CSS layouts."
     events = []
-    async for event in agent_app.async_stream_query(message=message, user_id="test"):
+    async for event in agent_app.async_stream_query(message=message, user_id="github-issue-agent"):
         events.append(event)
     assert len(events) > 0, "Expected at least one chunk in response"
 
-    # Check for valid content in the response
     has_text_content = False
     for event in events:
         validated_event = Event.model_validate(event)
@@ -89,10 +86,24 @@ def test_agent_feedback(agent_app: AgentEngineApp) -> None:
     logging.info("All assertions passed for agent feedback test")
 
 
-def test_agent_query(agent_app: AgentEngineApp) -> None:
-    """
-    Integration test for the synchronous non-streaming agent query functionality.
-    """
-    response = agent_app.query(query="What is the weather in SF?", user_id="test")
-    assert "60 degrees and foggy" in response
+def test_agent_query_feedback(agent_app: AgentEngineApp) -> None:
+    """Tests query parsing of feedback JSON payloads."""
+    feedback_payload = {
+        "type": "feedback",
+        "status": "good",
+        "assigned_engineer": "alex.rivera@davidstanke.altostrat.com",
+        "issue_text": "The button alignment is broken on Safari mobile."
+    }
+    response = agent_app.query(query=json.dumps(feedback_payload))
+    assert response == "thanks for the feedback"
 
+
+def test_agent_query_assignment(agent_app: AgentEngineApp) -> None:
+    """Tests that a standard query produces a triaged issue JSON assignment."""
+    query_text = "The button alignment is broken on Safari mobile."
+    response = agent_app.query(query=query_text)
+
+    parsed = json.loads(response)
+    assert "assigned_engineer" in parsed
+    assert "explanation" in parsed
+    assert parsed["assigned_engineer"] == "alex.rivera@davidstanke.altostrat.com"

@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 from google.adk.agents.run_config import RunConfig, StreamingMode
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
+from google.adk.memory import InMemoryMemoryService
 from google.genai import types
 
 from app.agent import root_agent
@@ -23,58 +25,28 @@ from app.agent import root_agent
 def test_agent_stream() -> None:
     """
     Integration test for the agent stream functionality.
-    Tests that the agent returns valid streaming responses.
+    Tests that the agent returns valid streaming responses for issue assignments.
     """
 
     session_service = InMemorySessionService()
+    memory_service = InMemoryMemoryService()
 
-    session = session_service.create_session_sync(user_id="test_user", app_name="test")
-    runner = Runner(agent=root_agent, session_service=session_service, app_name="test")
+    session = session_service.create_session_sync(user_id="github-issue-agent", app_name="test")
+    runner = Runner(
+        agent=root_agent,
+        session_service=session_service,
+        memory_service=memory_service,
+        app_name="test"
+    )
 
     message = types.Content(
-        role="user", parts=[types.Part.from_text(text="Why is the sky blue?")]
+        role="user", parts=[types.Part.from_text(text="Our PostgreSQL database is throwing deadlock exceptions during schema migrations.")]
     )
 
     events = list(
         runner.run(
             new_message=message,
-            user_id="test_user",
-            session_id=session.id,
-            run_config=RunConfig(streaming_mode=StreamingMode.SSE),
-        )
-    )
-    assert len(events) > 0, "Expected at least one message"
-
-    has_text_content = False
-    for event in events:
-        if (
-            event.content
-            and event.content.parts
-            and any(part.text for part in event.content.parts)
-        ):
-            has_text_content = True
-            break
-    assert has_text_content, "Expected at least one message with text content"
-
-
-def test_agent_logs() -> None:
-    """
-    Integration test to verify that the agent can fetch and analyze logs
-    using the new logs_mcp_fetch_storage_logs tool.
-    """
-    session_service = InMemorySessionService()
-
-    session = session_service.create_session_sync(user_id="test_user", app_name="test")
-    runner = Runner(agent=root_agent, session_service=session_service, app_name="test")
-
-    message = types.Content(
-        role="user", parts=[types.Part.from_text(text="Fetch 5 recent storage logs and tell me if there are any ERROR logs.")]
-    )
-
-    events = list(
-        runner.run(
-            new_message=message,
-            user_id="test_user",
+            user_id="github-issue-agent",
             session_id=session.id,
             run_config=RunConfig(streaming_mode=StreamingMode.SSE),
         )
@@ -89,5 +61,48 @@ def test_agent_logs() -> None:
                     response_text += part.text
 
     print(f"\n>>> Agent Response:\n{response_text}\n")
-    assert len(response_text) > 0, "Expected response text from the agent"
+    
+    # Charlie Wu is our database/migration expert
+    assert "charlie.wu@davidstanke.altostrat.com" in response_text
 
+
+def test_agent_learns_from_feedback() -> None:
+    """
+    Integration test verifying that the agent can retrieve and leverage past
+    assignment feedback from its memory.
+    """
+    session_service = InMemorySessionService()
+    memory_service = InMemoryMemoryService()
+    session = session_service.create_session_sync(user_id="github-issue-agent", app_name="test")
+    runner = Runner(
+        agent=root_agent,
+        session_service=session_service,
+        memory_service=memory_service,
+        app_name="test"
+    )
+
+    # Let's run a query about documentation
+    message = types.Content(
+        role="user", parts=[types.Part.from_text(text="Create a comprehensive getting started tutorial for the new SDK.")]
+    )
+
+    events = list(
+        runner.run(
+            new_message=message,
+            user_id="github-issue-agent",
+            session_id=session.id,
+            run_config=RunConfig(streaming_mode=StreamingMode.SSE),
+        )
+    )
+    
+    response_text = ""
+    for event in events:
+        if event.content and event.content.parts:
+            for part in event.content.parts:
+                if part.text:
+                    response_text += part.text
+
+    print(f"\n>>> Agent Response:\n{response_text}\n")
+    
+    # Julia Child is our documentation expert
+    assert "julia.child@davidstanke.altostrat.com" in response_text
