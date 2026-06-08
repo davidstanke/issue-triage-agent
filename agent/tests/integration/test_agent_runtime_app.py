@@ -87,3 +87,12 @@ def test_agent_feedback(agent_app: AgentEngineApp) -> None:
         agent_app.register_feedback(invalid_feedback)
 
     logging.info("All assertions passed for agent feedback test")
+
+
+def test_agent_query(agent_app: AgentEngineApp) -> None:
+    """
+    Integration test for the synchronous non-streaming agent query functionality.
+    """
+    response = agent_app.query(query="What is the weather in SF?", user_id="test")
+    assert "60 degrees and foggy" in response
+
