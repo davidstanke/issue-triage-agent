@@ -50,7 +50,7 @@ INITIAL_ENGINEER_PROFILES = {
 
 
 async def search_past_issue_assignments(query: str, ctx: Context) -> str:
-    """Searches the agent's memory bank for past issue assignments and engineer feedback.
+    """Searches the agent's memory bank for past issue assignments and profiles.
 
     Args:
         query: The search query (e.g. topic, issue text, keywords).
@@ -89,7 +89,7 @@ async def search_past_issue_assignments(query: str, ctx: Context) -> str:
             results = await ctx.search_memory(query)
 
         if not results or not results.memories:
-            return "No past memories or feedback found for this query."
+            return "No past memories found for this query."
         
         formatted = []
         for m in results.memories:

@@ -29,7 +29,6 @@ from vertexai.agent_engines.templates.adk import AdkApp
 from app.agent import app as adk_app
 from app.agent import ENGINEERS, INITIAL_ENGINEER_PROFILES
 from app.app_utils.telemetry import setup_telemetry
-from app.app_utils.typing import Feedback
 
 # Load environment variables from .env file at runtime
 try:
@@ -77,11 +76,6 @@ class AgentEngineApp(AdkApp):
         if gemini_location:
             os.environ["GOOGLE_CLOUD_LOCATION"] = gemini_location
         self._memories_seeded = False
-
-    def register_feedback(self, feedback: dict[str, Any]) -> None:
-        """Collect and log feedback."""
-        feedback_obj = Feedback.model_validate(feedback)
-        self.logger.log_struct(feedback_obj.model_dump(), severity="INFO")
 
     def seed_initial_memories_if_empty(self) -> None:
         """Seeds the memory bank with initial engineer profiles if it's currently empty."""
@@ -147,82 +141,16 @@ class AgentEngineApp(AdkApp):
         """Runs a synchronous, non-streaming query against the agent.
 
         Args:
-            query: The query string (issue text or JSON feedback) to send to the agent.
+            query: The query string to send to the agent.
             user_id: The ID of the user.
             session_id: The ID of the session.
             **kwargs: Additional keyword arguments.
 
         Returns:
-            The final text output of the agent or feedback acknowledgement.
+            The final text output of the agent.
         """
         # Ensure initial memories are seeded
         self.seed_initial_memories_if_empty()
-
-        # Check if the query is a JSON feedback payload
-        try:
-            payload = json.loads(query)
-            if isinstance(payload, dict) and payload.get("type") == "feedback":
-                # Process feedback
-                status = payload.get("status")
-                assigned = payload.get("assigned_engineer")
-                issue_text = payload.get("issue_text")
-                preferred = payload.get("preferred_engineer")
-                reason = payload.get("reason")
-
-                memory_service = self._tmpl_attrs.get("memory_service")
-                app_name = self._tmpl_attrs.get("app_name") or "default-app-name"
-
-                if memory_service:
-                    from google.adk.memory.memory_entry import MemoryEntry
-                    from google.genai import types
-
-                    memories_to_add = []
-                    if status == "good":
-                        text = f"Assignment was good: Engineer {assigned} successfully resolved issue: {issue_text}"
-                        memories_to_add.append(
-                            MemoryEntry(content=types.Content(parts=[types.Part(text=text)]))
-                        )
-                    elif status == "bad":
-                        text_bad = f"Assignment was bad: Engineer {assigned} was not optimal for issue: {issue_text}. Preferred engineer: {preferred} because: {reason}"
-                        memories_to_add.append(
-                            MemoryEntry(content=types.Content(parts=[types.Part(text=text_bad)]))
-                        )
-                        if preferred:
-                            text_pref = f"Assignment was preferred: Engineer {preferred} is preferred for issue: {issue_text}. Reason: {reason}"
-                            memories_to_add.append(
-                                MemoryEntry(content=types.Content(parts=[types.Part(text=text_pref)]))
-                            )
-
-                    if memories_to_add:
-                        try:
-                            run_sync(memory_service.add_memory(
-                                app_name=app_name,
-                                user_id="github-issue-agent",
-                                memories=memories_to_add
-                            ))
-                        except (NotImplementedError, ValueError):
-                            # Fallback for InMemoryMemoryService
-                            from google.adk.events.event import Event
-                            import time
-                            events = [
-                                Event(
-                                    id=f"fb-{int(time.time() * 1000)}-{i}",
-                                    author="github-issue-agent",
-                                    content=m.content,
-                                )
-                                for i, m in enumerate(memories_to_add)
-                            ]
-                            run_sync(memory_service.add_events_to_memory(
-                                app_name=app_name,
-                                user_id="github-issue-agent",
-                                events=events
-                            ))
-
-                return "thanks for the feedback"
-        except (json.JSONDecodeError, TypeError):
-            pass
-
-        # Otherwise, run normal triage query using global user_id
         from google.adk.events.event import Event
 
         response_parts = []
@@ -277,7 +205,7 @@ class AgentEngineApp(AdkApp):
     def register_operations(self) -> dict[str, list[str]]:
         """Registers the operations of the Agent."""
         operations = super().register_operations()
-        operations[""] = [*operations.get("", []), "register_feedback", "query"]
+        operations[""] = [*operations.get("", []), "query"]
         return operations
 
 

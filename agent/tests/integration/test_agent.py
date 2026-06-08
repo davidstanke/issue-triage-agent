@@ -63,13 +63,13 @@ def test_agent_stream() -> None:
     print(f"\n>>> Agent Response:\n{response_text}\n")
     
     # Charlie Wu is our database/migration expert
-    assert "charlie.wu@davidstanke.altostrat.com" in response_text
+    assert "charliewu-davidstanke" in response_text
 
 
-def test_agent_learns_from_feedback() -> None:
+def test_agent_memory_retrieval() -> None:
     """
     Integration test verifying that the agent can retrieve and leverage past
-    assignment feedback from its memory.
+    memories/expert profiles from its memory.
     """
     session_service = InMemorySessionService()
     memory_service = InMemoryMemoryService()
@@ -81,9 +81,9 @@ def test_agent_learns_from_feedback() -> None:
         app_name="test"
     )
 
-    # Let's run a query about documentation
+    # Let's run a query about performance and caching
     message = types.Content(
-        role="user", parts=[types.Part.from_text(text="Create a comprehensive getting started tutorial for the new SDK.")]
+        role="user", parts=[types.Part.from_text(text="Our main landing page has high latency; we need to add Redis caching.")]
     )
 
     events = list(
@@ -104,5 +104,5 @@ def test_agent_learns_from_feedback() -> None:
 
     print(f"\n>>> Agent Response:\n{response_text}\n")
     
-    # Julia Child is our documentation expert
-    assert "julia.child@davidstanke.altostrat.com" in response_text
+    # George Patel is our performance expert
+    assert "georgepatel-davidstanke" in response_text

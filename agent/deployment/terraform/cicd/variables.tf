@@ -100,10 +100,3 @@ variable "create_repository" {
   default     = false
 }
 
-
-variable "feedback_logs_filter" {
-  type        = string
-  description = "Log Sink filter for capturing feedback data. Captures logs where the `log_type` field is `feedback`."
-  default     = "jsonPayload.log_type=\"feedback\" jsonPayload.service_name=\"issue-triage-agent\""
-}
-

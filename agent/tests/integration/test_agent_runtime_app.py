@@ -58,46 +58,6 @@ async def test_agent_stream_query(agent_app: AgentEngineApp) -> None:
     assert has_text_content, "Expected at least one event with text content"
 
 
-def test_agent_feedback(agent_app: AgentEngineApp) -> None:
-    """
-    Integration test for the agent feedback functionality.
-    Tests that feedback can be registered successfully.
-    """
-    feedback_data = {
-        "score": 5,
-        "text": "Great response!",
-        "user_id": "test-user-456",
-        "session_id": "test-session-456",
-    }
-
-    # Should not raise any exceptions
-    agent_app.register_feedback(feedback_data)
-
-    # Test invalid feedback
-    with pytest.raises(ValueError):
-        invalid_feedback = {
-            "score": "invalid",  # Score must be numeric
-            "text": "Bad feedback",
-            "user_id": "test-user-789",
-            "session_id": "test-session-789",
-        }
-        agent_app.register_feedback(invalid_feedback)
-
-    logging.info("All assertions passed for agent feedback test")
-
-
-def test_agent_query_feedback(agent_app: AgentEngineApp) -> None:
-    """Tests query parsing of feedback JSON payloads."""
-    feedback_payload = {
-        "type": "feedback",
-        "status": "good",
-        "assigned_engineer": "alex.rivera@davidstanke.altostrat.com",
-        "issue_text": "The button alignment is broken on Safari mobile."
-    }
-    response = agent_app.query(query=json.dumps(feedback_payload))
-    assert response == "thanks for the feedback"
-
-
 def test_agent_query_assignment(agent_app: AgentEngineApp) -> None:
     """Tests that a standard query produces a triaged issue JSON assignment."""
     query_text = "The button alignment is broken on Safari mobile."
@@ -106,4 +66,4 @@ def test_agent_query_assignment(agent_app: AgentEngineApp) -> None:
     parsed = json.loads(response)
     assert "assigned_engineer" in parsed
     assert "explanation" in parsed
-    assert parsed["assigned_engineer"] == "alex.rivera@davidstanke.altostrat.com"
+    assert parsed["assigned_engineer"] == "alexrivera-davidstanke"
