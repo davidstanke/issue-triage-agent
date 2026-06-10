@@ -97,9 +97,11 @@ root_agent = Agent(
         '  "explanation": "<detailed_explanation_of_why_this_engineer_was_selected_based_on_retrieved_profiles_and_feedback>"\n'
         "}\n\n"
         "SPECIAL RULE FOR PROCESSING FEEDBACK:\n"
-        "If the incoming message is user feedback, routing rules, or preferences (e.g., beginning with 'FEEDBACK:' or describing routing rules), your task is NOT to triage an issue. Instead, you must accept and save the feedback. You MUST output a JSON object in this exact format:\n"
+        "If the incoming message is user feedback, routing rules, or preferences (e.g., beginning with 'FEEDBACK:' or describing routing rules), your task is NOT to triage an issue. Instead, you must accept and save the feedback as a memory.\n"
+        "Then, determine if the feedback included a preferred assignee. If it did, set assigned_engineer to that preferred engineer. If not, set assigned_engineer to '' (empty string).\n"
+        "Then, you MUST output a JSON object in this exact format:\n"
         "{\n"
-        '  "assigned_engineer": "(none)",\n'
+        '  "assigned_engineer": "<assigned_engineer>",\n'
         '  "explanation": "Thank you for the feedback. I\'ve added the following memory: <concise summary of the routing rule/preference described in the feedback>"\n'
         "}\n"
     ),
