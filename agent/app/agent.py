@@ -49,55 +49,20 @@ INITIAL_ENGINEER_PROFILES = {
 }
 
 
-async def search_past_issue_assignments(query: str, ctx: Context) -> str:
-    """Searches the agent's memory bank for past issue assignments and profiles.
+async def get_engineer_profiles(ctx: Context) -> str:
+    """Retrieves the list of available engineers and their expertise profiles.
 
     Args:
-        query: The search query (e.g. topic, issue text, keywords).
         ctx: Context automatically injected by ADK.
 
     Returns:
-        A list of matching memories formatted as a string.
+        A string formatted as a list of engineer emails and their expertises.
     """
-    try:
-        # Lazily seed memories if empty on first search to cover all environments/runners
-        results = await ctx.search_memory("*")
-        if not results or not results.memories:
-            from google.adk.memory.memory_entry import MemoryEntry
-            from google.genai import types
-
-            initial_memories = [
-                MemoryEntry(content=types.Content(parts=[types.Part(text=f"Engineer {email} is an expert in: {expertise}")]))
-                for email, expertise in INITIAL_ENGINEER_PROFILES.items()
-            ]
-            try:
-                await ctx.add_memory(memories=initial_memories)
-            except (NotImplementedError, ValueError):
-                from google.adk.events.event import Event
-                events = [
-                    Event(
-                        id=f"seed-{i}",
-                        author="github-issue-agent",
-                        content=m.content,
-                    )
-                    for i, m in enumerate(initial_memories)
-                ]
-                await ctx.add_events_to_memory(events=events)
-
-            results = await ctx.search_memory(query)
-        else:
-            results = await ctx.search_memory(query)
-
-        if not results or not results.memories:
-            return "No past memories found for this query."
-        
-        formatted = []
-        for m in results.memories:
-            text = "".join(part.text for part in m.content.parts if part.text)
-            formatted.append(f"- {text}")
-        return "\n".join(formatted)
-    except Exception as e:
-        return f"Error searching past assignments: {str(e)}"
+    formatted = [
+        f"- {email}: {expertise}"
+        for email, expertise in INITIAL_ENGINEER_PROFILES.items()
+    ]
+    return "\n".join(formatted)
 
 
 root_agent = Agent(
@@ -111,15 +76,15 @@ root_agent = Agent(
         "Your task is to assign an incoming GitHub issue to the most suitable engineer from the list of 15 available engineers:\n"
         f"{', '.join(ENGINEERS)}\n\n"
         "To make the best decision:\n"
-        "1. Always start by using the search_past_issue_assignments tool to search for past assignments, successes, failures, and expertise profiles related to the current issue topic.\n"
-        "2. Match the issue's requirements against the retrieved memories and the known profiles of the 15 engineers.\n"
+        "1. Always start by using the get_engineer_profiles tool to retrieve the known profiles of the available engineers.\n"
+        "2. Match the issue's requirements against the retrieved profiles.\n"
         "3. You MUST return a JSON object in this strict format, and nothing else:\n"
         "{\n"
         '  "assigned_engineer": "<email_id_of_chosen_engineer>",\n'
-        '  "explanation": "<detailed_explanation_of_why_this_engineer_was_selected_based_on_retrieved_memories_and_expertise>"\n'
+        '  "explanation": "<detailed_explanation_of_why_this_engineer_was_selected_based_on_retrieved_profiles>"\n'
         "}\n"
     ),
-    tools=[search_past_issue_assignments],
+    tools=[get_engineer_profiles],
 )
 
 app = App(
