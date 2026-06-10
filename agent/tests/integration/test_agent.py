@@ -20,6 +20,9 @@ from google.genai import types
 from app.agent import root_agent
 
 
+from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
+
+
 def test_agent_stream() -> None:
     """
     Integration test for the agent stream functionality.
@@ -27,11 +30,17 @@ def test_agent_stream() -> None:
     """
 
     session_service = InMemorySessionService()
+    memory_service = InMemoryMemoryService()
 
     session = session_service.create_session_sync(
         user_id="github-issue-agent", app_name="test"
     )
-    runner = Runner(agent=root_agent, session_service=session_service, app_name="test")
+    runner = Runner(
+        agent=root_agent,
+        session_service=session_service,
+        memory_service=memory_service,
+        app_name="test",
+    )
 
     message = types.Content(
         role="user",
