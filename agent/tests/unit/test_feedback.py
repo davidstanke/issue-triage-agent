@@ -56,7 +56,10 @@ async def test_process_feedback_async(mock_agent_app) -> None:
         # Verify parsed response
         parsed = json.loads(res)
         assert parsed["assigned_engineer"] == "(none)"
-        assert "Feedback received and saved:" in parsed["explanation"]
+        assert (
+            "Thank you for the feedback. I've added the following memory:"
+            in parsed["explanation"]
+        )
         assert "john.doe" in parsed["explanation"]
 
         # Verify genai client prompt call
@@ -97,5 +100,8 @@ def test_query_intercepts_feedback(mock_agent_app) -> None:
         # Verify response structure
         parsed = json.loads(res)
         assert parsed["assigned_engineer"] == "(none)"
-        assert "Feedback received and saved:" in parsed["explanation"]
+        assert (
+            "Thank you for the feedback. I've added the following memory:"
+            in parsed["explanation"]
+        )
         assert "john.doe" in parsed["explanation"]

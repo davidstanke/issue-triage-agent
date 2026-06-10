@@ -83,7 +83,10 @@ def test_agent_feedback_and_retrieval(agent_app: AgentEngineApp) -> None:
     parsed_feedback = json.loads(feedback_response)
 
     assert parsed_feedback["assigned_engineer"] == "(none)"
-    assert "Feedback received and saved:" in parsed_feedback["explanation"]
+    assert (
+        "Thank you for the feedback. I've added the following memory:"
+        in parsed_feedback["explanation"]
+    )
     assert "john.doe" in parsed_feedback["explanation"].lower()
 
     # 2. Submit standard query that matches the feedback keywords

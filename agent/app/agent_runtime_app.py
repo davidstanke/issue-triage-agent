@@ -91,7 +91,7 @@ class AgentEngineApp(AdkApp):
         return json.dumps(
             {
                 "assigned_engineer": "(none)",
-                "explanation": f"Feedback received and saved: {concise_rule}",
+                "explanation": f"Thank you for the feedback. I've added the following memory: {concise_rule}",
             }
         )
 
