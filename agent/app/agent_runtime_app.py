@@ -95,6 +95,22 @@ class AgentEngineApp(AdkApp):
             }
         )
 
+    def _run_sync(self, coro):
+        """Runs an async coroutine synchronously, avoiding the 'running event loop' error."""
+        import concurrent.futures
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(asyncio.run, coro)
+                return future.result()
+        else:
+            return asyncio.run(coro)
+
     async def async_stream_query(
         self,
         *,
@@ -169,7 +185,9 @@ class AgentEngineApp(AdkApp):
             from vertexai.agent_engines import _utils
 
             # Run feedback processing synchronously
-            feedback_res = asyncio.run(self._process_feedback_async(msg_str, user_id))
+            feedback_res = self._run_sync(
+                self._process_feedback_async(msg_str, user_id)
+            )
 
             # Yield as final event
             event = Event(
