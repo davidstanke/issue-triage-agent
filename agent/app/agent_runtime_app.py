@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import asyncio
 import json
 import logging
 import os
-import asyncio
-from typing import Any, Optional
+from typing import Any
 
 import google.auth
 import vertexai
@@ -23,8 +23,8 @@ from google.adk.artifacts import GcsArtifactService, InMemoryArtifactService
 from google.cloud import logging as google_cloud_logging
 from vertexai.agent_engines.templates.adk import AdkApp
 
+from app.agent import ENGINEERS
 from app.agent import app as adk_app
-from app.agent import ENGINEERS, INITIAL_ENGINEER_PROFILES
 from app.app_utils.telemetry import setup_telemetry
 
 # Load environment variables from .env file at runtime
@@ -46,12 +46,157 @@ class AgentEngineApp(AdkApp):
         if gemini_location:
             os.environ["GOOGLE_CLOUD_LOCATION"] = gemini_location
 
+    async def _process_feedback_async(self, query_text: str, user_id: str) -> str:
+        import json
+
+        from google import genai
+        from google.adk.events.event import Event
+        from google.genai import types
+
+        # 1. Formulate memory
+        client = genai.Client()
+        prompt = (
+            "You are an expert parser for GitHub issue assignment feedback.\n"
+            "Your goal is to extract the routing preferences from the feedback query.\n\n"
+            f"Feedback query:\n{query_text}\n\n"
+            "Extract and output a concise, clear routing rule or preference that summarizes this feedback.\n"
+            "The rule should specify the target component, service, language, or topic, the preferred assignee, and the reasoning.\n"
+            "Do NOT include extra, long issue details/logs. Focus on the core mapping.\n"
+            "Example output format:\n"
+            "Assign issues related to checkout service or Java to john.doe@davidstanke.altostrat.com because John has extensive experience in checkout and Java.\n\n"
+            "Return only the concise rule text."
+        )
+        response = client.models.generate_content(
+            model="gemini-flash-latest", contents=prompt
+        )
+        concise_rule = response.text.strip()
+
+        # Ensure set_up has run so memory_service is initialized
+        if not self._tmpl_attrs.get("memory_service"):
+            self.set_up()
+
+        memory_service = self._tmpl_attrs.get("memory_service")
+        if memory_service:
+            event = Event(
+                author="user",
+                content=types.Content(
+                    role="user", parts=[types.Part.from_text(text=concise_rule)]
+                ),
+            )
+            # Add to memory
+            await memory_service.add_events_to_memory(
+                app_name=self._app_name(), user_id=user_id, events=[event]
+            )
+
+        return json.dumps(
+            {
+                "assigned_engineer": "(none)",
+                "explanation": f"Feedback received and saved: {concise_rule}",
+            }
+        )
+
+    async def async_stream_query(
+        self,
+        *,
+        message: Any,
+        user_id: str,
+        session_id: str | None = None,
+        session_events: list[dict[str, Any]] | None = None,
+        run_config: dict[str, Any] | None = None,
+        **kwargs,
+    ):
+        # Extract string message
+        msg_str = ""
+        if isinstance(message, str):
+            msg_str = message
+        elif isinstance(message, dict):
+            try:
+                msg_str = message.get("parts", [{}])[0].get("text", "")
+            except Exception:
+                pass
+
+        if msg_str.strip().startswith("FEEDBACK:"):
+            from google.adk.events.event import Event
+            from google.genai import types
+            from vertexai.agent_engines import _utils
+
+            # Process feedback
+            feedback_res = await self._process_feedback_async(msg_str, user_id)
+
+            # Yield as final event
+            event = Event(
+                author="root_agent",
+                content=types.Content(
+                    role="model", parts=[types.Part.from_text(text=feedback_res)]
+                ),
+            )
+            yield _utils.dump_event_for_json(event)
+            return
+
+        # Otherwise, call super's async_stream_query
+        async for event in super().async_stream_query(
+            message=message,
+            user_id=user_id,
+            session_id=session_id,
+            session_events=session_events,
+            run_config=run_config,
+            **kwargs,
+        ):
+            yield event
+
+    def stream_query(
+        self,
+        *,
+        message: Any,
+        user_id: str,
+        session_id: str | None = None,
+        run_config: dict[str, Any] | None = None,
+        **kwargs,
+    ):
+        # Extract string message
+        msg_str = ""
+        if isinstance(message, str):
+            msg_str = message
+        elif isinstance(message, dict):
+            try:
+                msg_str = message.get("parts", [{}])[0].get("text", "")
+            except Exception:
+                pass
+
+        if msg_str.strip().startswith("FEEDBACK:"):
+            from google.adk.events.event import Event
+            from google.genai import types
+            from vertexai.agent_engines import _utils
+
+            # Run feedback processing synchronously
+            feedback_res = asyncio.run(self._process_feedback_async(msg_str, user_id))
+
+            # Yield as final event
+            event = Event(
+                author="root_agent",
+                content=types.Content(
+                    role="model", parts=[types.Part.from_text(text=feedback_res)]
+                ),
+            )
+            yield _utils.dump_event_for_json(event)
+            return
+
+        # Otherwise, call super's stream_query
+        for event in super().stream_query(
+            message=message,
+            user_id=user_id,
+            session_id=session_id,
+            run_config=run_config,
+            **kwargs,
+        ):
+            yield event
+
     def query(
         self,
         *,
         query: str,
         user_id: str = "default-user",
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
         **kwargs,
     ) -> str:
         """Runs a synchronous, non-streaming query against the agent.
@@ -95,7 +240,11 @@ class AgentEngineApp(AdkApp):
             parsed = json.loads(cleaned)
             if isinstance(parsed, dict) and "assigned_engineer" in parsed:
                 explanation = parsed.get("explanation")
-                if not explanation or not isinstance(explanation, str) or not explanation.strip():
+                if (
+                    not explanation
+                    or not isinstance(explanation, str)
+                    or not explanation.strip()
+                ):
                     parsed["explanation"] = "(unspecified)"
                 return json.dumps(parsed)
         except Exception:
@@ -112,10 +261,9 @@ class AgentEngineApp(AdkApp):
         if not explanation:
             explanation = "(unspecified)"
 
-        return json.dumps({
-            "assigned_engineer": assigned_engineer,
-            "explanation": explanation
-        })
+        return json.dumps(
+            {"assigned_engineer": assigned_engineer, "explanation": explanation}
+        )
 
     def register_operations(self) -> dict[str, list[str]]:
         """Registers the operations of the Agent."""
