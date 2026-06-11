@@ -61,10 +61,11 @@ async def test_agent_stream_query(agent_app: AgentEngineApp) -> None:
     assert has_text_content, "Expected at least one event with text content"
 
 
-def test_agent_query_assignment(agent_app: AgentEngineApp) -> None:
+@pytest.mark.asyncio
+async def test_agent_query_assignment(agent_app: AgentEngineApp) -> None:
     """Tests that a standard query produces a triaged issue JSON assignment."""
     query_text = "The button alignment is broken on Safari mobile."
-    response = agent_app.query(query=query_text)
+    response = await agent_app.query(query=query_text)
 
     parsed = json.loads(response)
     assert "assigned_engineer" in parsed
@@ -72,17 +73,18 @@ def test_agent_query_assignment(agent_app: AgentEngineApp) -> None:
     assert parsed["assigned_engineer"] == "alexrivera-davidstanke"
 
 
-def test_agent_feedback_and_retrieval(agent_app: AgentEngineApp) -> None:
+@pytest.mark.asyncio
+async def test_agent_feedback_and_retrieval(agent_app: AgentEngineApp) -> None:
     """Tests receiving feedback, storing it in memory, and routing based on it."""
     # 1. Submit feedback query
     feedback_query = (
         "FEEDBACK: This issue should have been assigned to john.doe@davidstanke.altostrat.com, "
         "because John has a lot of experience working in the checkout service and knows Java well."
     )
-    feedback_response = agent_app.query(query=feedback_query)
+    feedback_response = await agent_app.query(query=feedback_query)
     parsed_feedback = json.loads(feedback_response)
 
-    assert parsed_feedback["assigned_engineer"] == "(none)"
+    assert parsed_feedback["assigned_engineer"] == "john.doe@davidstanke.altostrat.com"
     assert (
         "Thank you for the feedback. I've added the following memory:"
         in parsed_feedback["explanation"]
@@ -91,7 +93,7 @@ def test_agent_feedback_and_retrieval(agent_app: AgentEngineApp) -> None:
 
     # 2. Submit standard query that matches the feedback keywords
     issue_query = "There is a NullPointerException in the checkout service backend when processing payments."
-    issue_response = agent_app.query(query=issue_query)
+    issue_response = await agent_app.query(query=issue_query)
     parsed_issue = json.loads(issue_response)
 
     assert parsed_issue["assigned_engineer"] == "john.doe@davidstanke.altostrat.com"

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import asyncio
 import json
 import logging
 import os
@@ -46,7 +45,7 @@ class AgentEngineApp(AdkApp):
         if gemini_location:
             os.environ["GOOGLE_CLOUD_LOCATION"] = gemini_location
 
-    def query(
+    async def query(
         self,
         *,
         query: str,
@@ -54,7 +53,7 @@ class AgentEngineApp(AdkApp):
         session_id: str | None = None,
         **kwargs,
     ) -> str:
-        """Runs a synchronous, non-streaming query against the agent.
+        """Runs a query against the agent.
 
         Args:
             query: The query string to send to the agent.
@@ -69,7 +68,7 @@ class AgentEngineApp(AdkApp):
         from google.adk.events.event import Event
 
         response_parts = []
-        for event_dict in self.stream_query(
+        async for event_dict in self.async_stream_query(
             message=query,
             user_id=user_id,
             session_id=session_id,
@@ -123,7 +122,7 @@ class AgentEngineApp(AdkApp):
     def register_operations(self) -> dict[str, list[str]]:
         """Registers the operations of the Agent."""
         operations = super().register_operations()
-        operations[""] = [*operations.get("", []), "query"]
+        operations["async"] = [*operations.get("async", []), "query"]
         return operations
 
 
